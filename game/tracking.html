@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>動体視力ゲーム</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #111; color: #fff; }
+    button, select { font-size: 20px; margin: 10px; padding: 10px; }
+    .target { position: absolute; width: 60px; height: 60px; background: red; border-radius: 50%; cursor: pointer; }
+    #scoreBoard { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    const url = new URL(location.href);
+    const game = url.searchParams.get("g");
+
+    if (game === "tracking") runTracking();
+
+    function runTracking() {
+      const app = document.getElementById("app");
+      app.innerHTML = `<h1>追跡視力トレーニング</h1>
+        <label>回数選択: <select id="countSelect">${[...Array(26)].map((_,i)=>`<option>${i+5}</option>`).join('')}</select></label>
+        <button onclick="startTrackingGame()">開始</button>`;
+    }
+
+    function startTrackingGame() {
+      const totalCount = parseInt(document.getElementById("countSelect").value);
+      let current = 0, hit = 0;
+      const app = document.getElementById("app");
+      app.innerHTML = `<div id='gameArea' style='position:relative;width:100vw;height:80vh;'></div>
+        <div id='scoreBoard'></div>
+        <button onclick='location.href="./"'>停止して戻る</button>`;
+
+      const gameArea = document.getElementById("gameArea");
+      const interval = setInterval(() => {
+        if (current >= totalCount) {
+          clearInterval(interval);
+          const score = Math.round((hit * hit * 5));
+          const record = { date: new Date().toISOString(), score, hit, total: totalCount };
+          const data = JSON.parse(localStorage.getItem("tracking_scores") || "[]");
+          data.push(record);
+          localStorage.setItem("tracking_scores", JSON.stringify(data));
+          document.getElementById("scoreBoard").innerHTML = `<h2>スコア: ${score}</h2><h3>ヒット: ${hit}/${totalCount}</h3>`;
+          sendScoreToServer("tracking", score);
+          return;
+        }
+        current++;
+        const target = document.createElement("div");
+        target.className = "target";
+        const x = Math.random() * (window.innerWidth - 60);
+        const y = Math.random() * (window.innerHeight * 0.8 - 60);
+        target.style.left = `${x}px`;
+        target.style.top = `${y}px`;
+        target.onclick = () => {
+          hit++;
+          target.remove();
+        };
+        gameArea.innerHTML = "";
+        gameArea.appendChild(target);
+        setTimeout(() => target.remove(), 1000);
+      }, 1200);
+    }
+
+    function sendScoreToServer(game, score) {
+      if (!navigator.onLine) return;
+      fetch("./score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game, score, time: new Date().toISOString() })
+      }).catch(console.error);
+    }
+  </script>
+</body>
+</html>
