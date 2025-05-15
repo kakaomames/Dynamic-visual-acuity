@@ -1,0 +1,17 @@
+<!-- game/index.html（ゲームプレイ画面） -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ゲームプレイ</title>
+</head>
+<body>
+  <h1>ゲーム読み込み中...</h1>
+  <script type="module">
+    const params = new URLSearchParams(location.search);
+    const game = params.get("g") || "reaction";
+    import(`../games/${game}/main.js`).then(module => module.init());
+  </script>
+</body>
+</html>
